@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQLBinder</title>
+    <style>
+        #inputSQLLog,
+        #inputSQLParams,
+        #outputArea {
+            width: 100%;
+            height: 200px;
+            border: 1px solid #000;
+            padding: 10px;
+            box-sizing: border-box;
+            margin-top: 10px;
+        }
+
+        #outputArea {
+            resize: none;
+        }
+    </style>
+</head>
+
+<body>
+    <h1 style="text-align: center;">SQLBinder網頁版</h1>
+    <textarea id="inputSQLLog"></textarea>
+    <textarea id="inputSQLParams"></textarea>
+    <button id="toggleButton">轉換</button>
+    <textarea id="outputArea"></textarea>
+    <button id="copyButton">複製</button>
+    <script>
+        const inputSQLLog = document.getElementById("inputSQLLog");
+        const inputSQLParams = document.getElementById("inputSQLParams");
+        const outputArea = document.getElementById("outputArea");
+        const toggleButton = document.getElementById("toggleButton");
+        const copyButton = document.getElementById("copyButton");
+
+        toggleButton.addEventListener("click", () => {
+            const sql = inputSQLLog.value;
+            const params = parseParams(inputSQLParams.value);
+
+            const result = bindParams(sql, params);
+            outputArea.value = result;
+        });
+
+        copyButton.addEventListener("click", () => {
+            navigator.clipboard.writeText(outputArea.value);
+        });
+
+        function parseParams(params) {
+            const result = [];
+            const lines = params.split("\n");
+            lines.forEach((line) => {
+                const sline = line.substring(
+                    line.indexOf("binding parameter") + 1,
+                    line.length
+                );
+                const regex = /\[(.*?)\]/g;
+                const matches = [...sline.matchAll(regex)];
+                const seq = matches[0][1];
+                const type = matches[1][1];
+                const value = matches[2][1];
+                result.push({ seq, type, value });
+            });
+            return result;
+        }
+
+
+        function bindParams(sql, params) {
+            let result = sql;
+            params.forEach((param) => {
+                result = result.replace("?", formatParam(param));
+            });
+            return result;
+        }
+
+        function formatParam(param) {
+            if (param.value === "NULL") {
+                return param.value;
+            }
+            switch (param.type) {
+                case "VARCHAR":
+                    return `'${param.value}'`;
+                case "INTEGER":
+                    return `${param.value}`;
+                case "TIMESTAMP":
+                    return `'${param.value}'`;
+                case "DATE":
+                    return `'${param.value}'`;
+                case "CHAR":
+                    return `'${param.value}'`;
+                case "DECIMAL":
+                    return `${param.value}`;
+                case "NUMERIC":
+                    return `${param.value}`;
+                case "BOOLEAN":
+                    return param.value === "true"
+                        ? `1`
+                        : param.value === "false"
+                            ? "0"
+                            : undefined;
+            }
+        }
+    </script>
+</body>
+
+</html>
