@@ -1,0 +1,113 @@
+<!DOCTYPE html SYSTEM "about:legacy-compat"><html lang="en-US" data-colors-preset="contrast" data-primary-color="#307FFF"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta charset="UTF-8"><meta name="robots" content="noindex">  <meta name="built-on" content="2023-12-10T22:56:48.368016"><meta name="build-number" content="${buildNumber}">       <title>處理依賴 | 單元測試</title><script id="virtual-toc-data" type="application/json">[{"id":"59a47e9a_1295","level":0,"title":"依賴於時間","anchor":"#59a47e9a_1295"},{"id":"59a47e9a_1313","level":0,"title":"測行為","anchor":"#59a47e9a_1313"},{"id":"test-double","level":0,"title":"Test Double","anchor":"#test-double"}]</script><script id="topic-shortcuts" type="application/json"></script><link href="https://resources.jetbrains.com/writerside/apidoc/6.6.6-b205/app.css" rel="stylesheet">   <link rel="apple-touch-icon" sizes="180x180" href="https://jetbrains.com/apple-touch-icon.png"><link rel="icon" type="image/png" sizes="32x32" href="https://jetbrains.com/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="https://jetbrains.com/favicon-16x16.png"><link rel="manifest" href="https://jetbrains.com/site.webmanifest"><link rel="mask-icon" href="https://jetbrains.com/safari-pinned-tab.svg" color="#000000"><meta name="msapplication-TileColor" content="#000000"/><meta name="msapplication-TileImage" content="https://resources.jetbrains.com/storage/ui/favicons/mstile-144x144.png"/><meta name="msapplication-square70x70logo" content="https://resources.jetbrains.com/storage/ui/favicons/mstile-70x70.png"/><meta name="msapplication-square150x150logo" content="https://resources.jetbrains.com/storage/ui/favicons/mstile-150x150.png"/><meta name="msapplication-wide310x150logo" content="https://resources.jetbrains.com/storage/ui/favicons/mstile-310x150.png"/><meta name="msapplication-square310x310logo" content="https://resources.jetbrains.com/storage/ui/favicons/mstile-310x310.png"/>  <meta name="image" content=""><!-- Open Graph --><meta property="og:title" content="處理依賴 | 單元測試"/><meta property="og:description" content=""/><meta property="og:image" content=""/><meta property="og:site_name" content="單元測試 Help"/><meta property="og:type" content="website"/><meta property="og:locale" content="en_US"/><meta property="og:url" content="how-to-test.html"/><!-- End Open Graph --><!-- Twitter Card --><meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content=""><meta name="twitter:title" content="處理依賴 | 單元測試"><meta name="twitter:description" content=""><meta name="twitter:creator" content=""><meta name="twitter:image:src" content=""><!-- End Twitter Card --><!-- Schema.org WebPage --><script type="application/ld+json"> { "@context": "http://schema.org", "@type": "WebPage", "@id": "how-to-test.html#webpage", "url": "how-to-test.html", "name": "處理依賴 | 單元測試", "description": "", "image": "", "inLanguage":"en-US" }</script><!-- End Schema.org --><!-- Schema.org WebSite --><script type="application/ld+json"> { "@type": "WebSite", "@id": "/#website", "url": "/", "name": "單元測試 Help" }</script><!-- End Schema.org --></head>      <body data-id="how-to-test" data-main-title="處理依賴" data-article-props="{&quot;seeAlso&quot;:[{&quot;title&quot;:&quot;Test Double&quot;,&quot;links&quot;:[{&quot;url&quot;:&quot;https://martinfowler.com/bliki/TestDouble.html&quot;,&quot;text&quot;:&quot;Test Double from Martin Fowler&quot;},{&quot;url&quot;:&quot;https://yu-jack.github.io/2020/10/12/unit-test-best-practice-part-5/&quot;,&quot;text&quot;:&quot;如何有效使用 Test Double&quot;}]}],&quot;seeAlsoStyle&quot;:&quot;links&quot;}"  data-template="article"  data-breadcrumbs=""  >   <div class="wrapper"><main class="panel _main"><header class="panel__header"><div class="container"><h3>單元測試  Help</h3><div class="panel-trigger"></div></div></header><section class="panel__content"><div class="container"><article class="article" data-shortcut-switcher="inactive"><h1 data-toc="how-to-test"   id="how-to-test.md">處理依賴</h1>  <p id="59a47e9a_1266">前面討論過程式依賴關係會直接影響測試的難度，但要完全杜絕依賴關係又不現實，因此我們必須仰賴工具來讓我們可以輕鬆地處理依賴關係，在 Java 的世界裡這工具叫做 <code class="code" id="59a47e9a_1267">Mockito</code>。 <br> 以前面的範例，其實只要想辦法把<code class="code" id="59a47e9a_1269">OrderRepository</code>替換掉，使其不要真的去資料庫找資料，問題就解決了，而 <code class="code" id="59a47e9a_1270">Mockito</code> 可以幫我們輕鬆的辦到這件事，參考下面的程式碼</p><div class="code-block" data-lang="java"         >
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = RestApplication.class)
+public class OrderFactoryTest {
+
+    @Autowired
+    private OrderFactory orderFactory;
+    @MockBean
+    private OrderRepository orderRepository;
+
+    @Test
+    void testReconstruction() {
+        // 模擬 findById
+        Long expectId = 10L;
+        this.mock_findById(expectId);
+        
+        Order order = orderFactory.reconstruction(expectId);
+        assertThat(order.getId()).isEqualTo(expectId);
+    }
+    
+    void mock_findById(Long id) {
+        Mockito.when(
+            orderRepository.findById(Mockito.any()))
+        .thenReturn(new Order(id));
+    }
+}
+</div><ol class="list _decimal" id="59a47e9a_1272" type="1"><li class="list__item" id="59a47e9a_1273"><p>首先透過第一行的<code class="code" id="59a47e9a_1274">@ExtendWith(SpringExtension.class)</code>來引入 Spring 的 Junit 擴充，其中會自動設定啟動 Spring 的程序，例如初始化<code class="code" id="59a47e9a_1275">ApplicationContext</code>。</p></li><li class="list__item" id="59a47e9a_1276"><p>接著再由<code class="code" id="59a47e9a_1277">@SpringBootTest(classes = RestApplication.class)</code>告訴 Spring 要啟動哪一個 Application，其中<code class="code" id="59a47e9a_1278">RestApplication.class</code>內包含 Spring 啟動的 <code class="code" id="59a47e9a_1279">main</code> 方法。</p></li><li class="list__item" id="59a47e9a_1280"><p>再來<code class="code" id="59a47e9a_1281">@Autowired</code>我們要測試的對象，也就是<code class="code" id="59a47e9a_1282">OrderFactory</code>。</p></li><li class="list__item" id="59a47e9a_1283"><p>透過<code class="code" id="59a47e9a_1284">@MockBean</code> Spring 會幫我們自動建立一個假的<code class="code" id="59a47e9a_1285">OrderRepository</code> ，之後會透過 Spring DI 自動把<code class="code" id="59a47e9a_1286">OrderFactory</code> 裡的<code class="code" id="59a47e9a_1287">OrderRepository</code>注入成這邊生成的假物件。</p></li><li class="list__item" id="59a47e9a_1288"><p>最後再透過<code class="code" id="59a47e9a_1289">mock_findById</code>方法，使用 Mockito 告訴它當呼叫到<code class="code" id="59a47e9a_1290">orderRepository.findById</code>這個方法時，回傳一個預先 new 好的一個<code class="code" id="59a47e9a_1291">Order</code>物件。</p></li></ol><p id="59a47e9a_1292">透過上面的這些操作，就可以把<code class="code" id="59a47e9a_1293">OrderFactory</code>與真實的<code class="code" id="59a47e9a_1294">OrderRepository</code>給解耦，讓我們的測試可以順利執行。</p><section class="chapter"><h2 id="59a47e9a_1295" data-toc="59a47e9a_1295"   >依賴於時間</h2><p id="59a47e9a_1296">假設我們正在開發支付系統，系統必須將指定的金額轉帳給銀行，而銀行可接受轉帳時間為營業日的 08:00 ~ 15:00，所以有了<code class="code" id="59a47e9a_1297">Transfer</code> 類別，其中的<code class="code" id="59a47e9a_1298">isTransferable</code>為判斷現在時間是否可轉帳。</p><div class="code-block" data-lang="java"         >
+public class Transfer {
+    
+    public boolean isTransferable() {
+        LocalDate now = LocalDate.now();
+        // 一些判斷邏輯 code 略...
+    }
+}
+</div><p id="59a47e9a_1300">接著我們想要測試不可測試的情境。 恩...要怎麼測？ <br> 如果跑測試的時間是在上午 9 點的話，那不就測不了，再說前面使用 Mockito 的範例都是替換一個已經被 new 出來的 instance，但這裡的 <code class="code" id="59a47e9a_1302">LocalDate.now()</code> 是 static 方法，static 屬性的方法是在 JVM 啟動時就初始化完了，使用它也不需要先 new 它，該怎麼辦？ <br></p><p id="59a47e9a_1304">有兩種方法可以解決這個問題</p><ol class="list _decimal" id="59a47e9a_1305" type="1"><li class="list__item" id="59a47e9a_1306"><p>不要在方法內使用<code class="code" id="59a47e9a_1307">LocalDate.now()</code> ，改成用參數輸入來解耦</p></li><li class="list__item" id="59a47e9a_1308"><p>使用 Mockito 在<code class="code" id="59a47e9a_1309">3.4.0</code>後推出的<code class="code" id="59a47e9a_1310">mockStatic</code></p></li></ol><div class="code-block" data-lang="java"         >
+LocalDate expected = LocalDate.of(2029, 12, 31);
+Mockito.mockStatic(LocalDate.class).when(LocalDate::now).thenReturn(expected);
+</div><p id="59a47e9a_1312">這樣我們的測試就可以在任何時間執行了。</p></section><section class="chapter"><h2 id="59a47e9a_1313" data-toc="59a47e9a_1313"   >測行為</h2><p id="59a47e9a_1314">日常開發不外乎是打隻 API 查點資料，或是做點計算再把資料存到資料庫，也就是 Query 和 Command，所謂的 Query 就是向某個物件要東西，像是前面範例用<code class="code" id="59a47e9a_1315">OrderRepository</code>去資料庫查詢或是用<code class="code" id="59a47e9a_1316">StudentScore</code>的<code class="code" id="59a47e9a_1317">getAverage</code> 方法算出平均成績也算是查詢，而這種行為的測試很容易可以驗證其正確性，因為它總是會回傳資料回來，只要有回傳就可以透過<code class="code" id="59a47e9a_1318">assert</code> 來檢驗有沒有達到預期效果。 <br> 而 Command 就是叫某個物件去做點事情，像是呼叫 Dao 把資料存到資料庫，這類的行為通常都不會有回傳值，既然沒回傳值，那怎麼知道程式跑得對不對呢？</p><p id="59a47e9a_1320">在解釋怎麼測試前，先把前面的<code class="code" id="59a47e9a_1321">OrderFactory</code>功能補齊，把下新訂單的功能給補上</p><div class="code-block" data-lang="java"         >
+@RequiredArgsConstructor
+public class OrderFactory {
+
+    private final OrderRepository orderRepository;
+    private final StockService stockService;
+    
+    public Order reconstruction(Long orderId) {
+        return orderRepository.findById(orderId);
+    }
+    
+    public Order create(Product product, int quantity) {
+        // 檢查產品是否還有庫存
+        boolean isPossibleOrder = stockService.isPossibleOrder(product.getProductId(), quantity);
+        if (isPossibleOrder) {
+            // 訂單成立
+            Order order = new Order(product, quantity);
+            orderRepository.save(order);
+            // 扣除庫存數量
+            stockService.decrease(product.getProductId(), quantity);
+            return order;
+        } else {
+            // 沒庫存拋錯誤
+            throw new OutOfStockException(&quot;The product id &quot; + product.getProductId() + &quot; is out of stock&quot;);
+        }
+    }
+}
+</div><p id="59a47e9a_1323">接著寫測試程式</p><div class="code-block" data-lang="java"         >
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = RestApplication.class)
+public class OrderFactoryTest {
+
+   @Autowired
+   private OrderFactory orderFactory;
+   @MockBean
+   private OrderRepository orderRepository;
+   @MockBean
+   private StockService stockService;
+
+   @Test
+   @DisplayName(&quot;下新訂單(有庫存)&quot;)
+   void createHasStock() {
+      this.mock_isPossibleOrder(true);
+      
+      Product product = new Product(20);
+      Order order = orderFactory.create(product, 10);
+      
+      // 驗證真的有存到資料庫
+      Mockito.verify(orderRepository, Mockito.times(1)).save(order);
+      // 驗證真的有減少庫存量
+      Mockito.verify(stockService, Mockito.times(1)).decrease(product.getProductId(), 10);
+   }
+   
+   @Test
+   @DisplayName(&quot;下新訂單(沒庫存)&quot;)
+   void createOutOfStock() {
+      this.mock_isPossibleOrder(false);
+      
+      Product product = new Product(20);
+      try {
+         Order order = orderFactory.create(product, 10);
+         fail(&quot;An error should be thrown&quot;);
+      } catch (OutOfStockException e) {
+         /* 注意：catch 裡不能放 Exception，因為程式預期會為拋出的錯只有 OutOfStockException，
+         如果拋出了非 OutOfStockException 的例外都屬非預期的行為，應該要讓測試失敗 */
+         assertThat(e).hasMessageContaining(&quot;out of stock&quot;);
+      }
+   }
+   
+   private void mock_isPossibleOrder(boolean isPossibleOrder) {
+      Mockito.when(stockService.isPossibleOrder(Mockito.any(), Mockito.any()))
+      .thenReturn(isPossibleOrder);
+   }
+   
+}
+</div><p id="59a47e9a_1325">使用<code class="code" id="59a47e9a_1326">Mockito.verify</code>方法，並輸入指定的驗證目標及次數，就可以驗證程式是不是真的有執行某項行為，到此測試就完成了。 同時還順便多補了當沒有庫存時的情境，其中在執行完<code class="code" id="59a47e9a_1327">create</code>後用了<code class="code" id="59a47e9a_1328">fail</code>語法，因為我預期這裡應該要拋出錯誤，如果到了<code class="code" id="59a47e9a_1329">fail</code> 這裡程式還能正常跑完，那測試就應該要失敗。</p></section><section class="chapter"><h2 id="test-double" data-toc="test-double"   >Test Double</h2><p id="59a47e9a_1330">其實前面處理依賴的方法有個專有的名稱叫做<code class="code" id="59a47e9a_1331">Stubs</code> ，而這也只是一個分類的名稱，它的完整概念叫做<code class="code" id="59a47e9a_1332">Test Double</code>。 <br> Test Double 指的是在測試的過程中所建造出用來替換真實物件的幾種模式。</p><ul class="list _ul" id="59a47e9a_1334"><li class="list__item" id="59a47e9a_1335"><p><span class="control" id="59a47e9a_1336">Dummy</span>: 單純用來傳遞的假資料</p></li><li class="list__item" id="59a47e9a_1337"><p><span class="control" id="59a47e9a_1338">Fake</span>: 一個擁有完整實做的物件，但其實做的內容透過某種捷徑來繞過真實行為，以達到測試的目的，像是 InMemoryTestDatabase</p></li><li class="list__item" id="59a47e9a_1339"><p><span class="control" id="59a47e9a_1340">Stubs</span>: 提供只會回覆罐頭訊息的物件，像前面用<code class="code" id="59a47e9a_1341">Mockito.when</code></p></li><li class="list__item" id="59a47e9a_1342"><p><span class="control" id="59a47e9a_1343">Spies</span>: 基本跟 Stubs 相同，但多紀錄一些呼叫資訓，例如某個方法在測試期間被呼叫了幾次， <code class="code" id="59a47e9a_1344">Mockito.verify</code>就屬於這個類型</p></li><li class="list__item" id="59a47e9a_1345"><p><span class="control" id="59a47e9a_1346">Mocks</span>: 跟 Spies 類似，與 Spies 差別在於 Spies 不管執行過程和結果的正確性，但 Mocks 會對其做檢核</p></li></ul></section><div class="last-modified"> Last modified: 10 12月 2023</div><div data-feedback-placeholder="true"></div><div class="navigation-links _bottom">  <a class="navigation-links__prev" href="the-first-unit-test.html">第一個單元測試</a>   <a class="navigation-links__next" href="next.html">下一步</a>  </div></article><div id="disqus_thread"></div></div></section></main></div>  <script src="https://resources.jetbrains.com/writerside/apidoc/6.6.6-b205/app.js"></script></body></html>
