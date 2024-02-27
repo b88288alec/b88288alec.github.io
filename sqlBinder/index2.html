@@ -14,7 +14,7 @@
       .editor {
         width: 100%;
         height: 400px;
-        border: 1px solid #D9D9D9;
+        border: 1px solid #d9d9d9;
       }
       .convert-btn {
         background-color: #00bbc9;
@@ -26,7 +26,17 @@
         font-size: 14px;
       }
       .copy-brn {
-        background-color: #F2B263;
+        background-color: #f2b263;
+        padding: 3px;
+        border: 0px;
+        border-radius: 3pc;
+        width: 100px;
+        color: white;
+        font-size: 14px;
+        margin-left: 8px;
+      }
+      .reset-brn {
+        background-color: #ff4858;
         padding: 3px;
         border: 0px;
         border-radius: 3pc;
@@ -54,6 +64,7 @@
     </div>
     <div id="output-container" class="editor"></div>
     <div style="display: flex; justify-content: center; margin: 10px">
+      <button id="reset" class="reset-brn">重設</button>
       <button id="copy" class="copy-brn">複製</button>
     </div>
 
@@ -69,7 +80,7 @@
         document.getElementById("sql-container"),
         {
           language: "sql",
-          minimap: { enabled: false }
+          minimap: { enabled: false },
           //   theme: "vs-dark",
         }
       );
@@ -78,7 +89,7 @@
         document.getElementById("log-container"),
         {
           language: "bat",
-          minimap: { enabled: false }
+          minimap: { enabled: false },
           //   theme: "vs-dark",
         }
       );
@@ -87,7 +98,7 @@
         document.getElementById("output-container"),
         {
           language: "sql",
-          minimap: { enabled: false }
+          minimap: { enabled: false },
           //   theme: "vs-dark",
         }
       );
@@ -106,6 +117,14 @@
       const copyButton = document.getElementById("copy");
       copyButton.addEventListener("click", () => {
         navigator.clipboard.writeText(outputEditor.getValue());
+      });
+
+      // 重設按鈕
+      const resetButton = document.getElementById("reset");
+      resetButton.addEventListener("click", () => {
+        sqlEditor.setValue("");
+        logEditor.setValue("");
+        outputEditor.setValue("");
       });
 
       function parseParams(params) {
