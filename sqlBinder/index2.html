@@ -12,16 +12,75 @@
     <title>SQLBinder</title>
     <style>
       :root {
+        --bg-dark: #1f1e24;
+        --bg-light: white;
         --editor-border-color: #d9d9d9;
+        --theme-switch-color: #1f1e24;
       }
       @media (prefers-color-scheme: dark) {
         body {
           color: #ececef;
-          background-color: #1f1e24;
+          background-color: var(--bg-dark);
         }
         :root {
           --editor-border-color: #4c494e;
+          --theme-switch-color: #ececef;
         }
+      }
+      @media (prefers-color-scheme: light) {
+        body {
+          color: black;
+          background-color: var(--bg-ligh);
+        }
+        :root {
+          --editor-border-color: #d9d9d9;
+          --theme-switch-color: #1f1e24;
+        }
+      }
+      .light-theme {
+        color: black;
+        background-color: var(--bg-ligh);
+      }
+      .light-theme .editor {
+        border: 1px solid #d9d9d9;
+      }
+      .dark-theme {
+        color: #ececef;
+        background-color: var(--bg-dark);
+      }
+      .dark-theme .editor {
+        border: 1px solid #4c494e;
+      }
+      .theme-switch {
+        cursor: pointer;
+        width: 20px;
+        height: 20px;
+        border-radius: 100pc;
+        background-image: linear-gradient(
+          -90deg,
+          var(--theme-switch-color) 50%,
+          transparent 50%
+        );
+        border: 2px solid var(--theme-switch-color);
+        position: absolute;
+        top: 30px;
+        right: 20px;
+      }
+      .theme-switch.light {
+        background-image: linear-gradient(
+          -90deg,
+          #1f1e24 50%,
+          transparent 50%
+        );
+        border: 2px solid #1f1e24;
+      }
+      .theme-switch.dark {
+        background-image: linear-gradient(
+          -90deg,
+          #ececef 50%,
+          transparent 50%
+        );
+        border: 2px solid #ececef;
       }
       .editor {
         width: 100%;
@@ -38,7 +97,7 @@
         font-size: 14px;
       }
       .btn:hover {
-        background-color: #E9EFF2;
+        background-color: #e9eff2;
         color: black;
         border: 1px solid var(--editor-border-color);
         transition: 0.5s;
@@ -58,6 +117,7 @@
   </head>
   <body>
     <h1 style="text-align: center">SQLBinder 網頁版</h1>
+    <div class="theme-switch"></div>
     <div style="display: flex">
       <div style="width: 49%">
         <h4>SQL here</h4>
@@ -86,6 +146,7 @@
     <script src="lib/monaco/min/vs/editor/editor.main.js"></script>
 
     <script>
+      let theme = "auto";
       const mediaQueryListDark = window.matchMedia(
         "(prefers-color-scheme: dark)"
       );
@@ -119,7 +180,17 @@
 
       // 黑暗模式自動切換
       mediaQueryListDark.addListener((e) => {
-        if (e.matches) {
+        if (theme === "auto") {
+          if (e.matches) {
+            switchEditorTheme("dark");
+          } else {
+            switchEditorTheme("light");
+          }
+        }
+      });
+
+      function switchEditorTheme(theme) {
+        if (theme === "dark") {
           sqlEditor.updateOptions({ theme: "vs-dark" });
           logEditor.updateOptions({ theme: "vs-dark" });
           outputEditor.updateOptions({ theme: "vs-dark" });
@@ -127,6 +198,30 @@
           sqlEditor.updateOptions({ theme: "vs" });
           logEditor.updateOptions({ theme: "vs" });
           outputEditor.updateOptions({ theme: "vs" });
+        }
+      }
+
+      // 主題切換
+      const doby = document.querySelector("body");
+      const themeSwitch = document.querySelector(".theme-switch");
+      themeSwitch.addEventListener("click", () => {
+        if (
+          (theme === "auto" && mediaQueryListDark.matches) ||
+          theme === "dark"
+        ) {
+          doby.classList.remove("dark-theme");
+          doby.classList.add("light-theme");
+          themeSwitch.classList.remove("dark");
+          themeSwitch.classList.add("light");
+          switchEditorTheme("light");
+          theme = "light";
+        } else {
+          doby.classList.remove("lighr-theme");
+          doby.classList.add("dark-theme");
+          themeSwitch.classList.remove("light");
+          themeSwitch.classList.add("dark");
+          switchEditorTheme("dark");
+          theme = "dark";
         }
       });
 
