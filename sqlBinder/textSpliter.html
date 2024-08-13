@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      data-name="vs/editor/editor.main"
+      href="lib/monaco/min/vs/editor/editor.main.css"
+    />
+    <title>文字切割器</title>
+    <style>
+      :root {
+        --bg-dark: #1f1e24;
+        --bg-light: white;
+        --editor-border-color: #d9d9d9;
+        --theme-switch-color: #1f1e24;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          color: #ececef;
+          background-color: var(--bg-dark);
+        }
+        :root {
+          --editor-border-color: #4c494e;
+          --theme-switch-color: #ececef;
+        }
+      }
+      @media (prefers-color-scheme: light) {
+        body {
+          color: black;
+          background-color: var(--bg-ligh);
+        }
+        :root {
+          --editor-border-color: #d9d9d9;
+          --theme-switch-color: #1f1e24;
+        }
+      }
+      .light-theme {
+        color: black;
+        background-color: var(--bg-ligh);
+      }
+      .light-theme .editor {
+        border: 1px solid #d9d9d9;
+      }
+      .dark-theme {
+        color: #ececef;
+        background-color: var(--bg-dark);
+      }
+      .dark-theme .editor {
+        border: 1px solid #4c494e;
+      }
+      .theme-switch {
+        cursor: pointer;
+        width: 20px;
+        height: 20px;
+        border-radius: 100pc;
+        background-image: linear-gradient(
+          -90deg,
+          var(--theme-switch-color) 50%,
+          transparent 50%
+        );
+        border: 2px solid var(--theme-switch-color);
+        position: absolute;
+        top: 30px;
+        right: 20px;
+      }
+      .theme-switch.light {
+        background-image: linear-gradient(
+          -90deg,
+          #1f1e24 50%,
+          transparent 50%
+        );
+        border: 2px solid #1f1e24;
+      }
+      .theme-switch.dark {
+        background-image: linear-gradient(
+          -90deg,
+          #ececef 50%,
+          transparent 50%
+        );
+        border: 2px solid #ececef;
+      }
+      .editor {
+        width: 100%;
+        height: 400px;
+        border: 1px solid var(--editor-border-color);
+      }
+      .btn {
+        cursor: pointer;
+        padding: 3px;
+        border: 1px solid transparent;
+        border-radius: 3pc;
+        width: 100px;
+        color: white;
+        font-size: 14px;
+      }
+      .btn:hover {
+        background-color: #e9eff2;
+        color: black;
+        border: 1px solid var(--editor-border-color);
+        transition: 0.5s;
+      }
+      .convert-btn {
+        background-color: #00bbc9;
+      }
+      .copy-brn {
+        background-color: #f2b263;
+        margin-left: 8px;
+      }
+      .reset-brn {
+        background-color: #ff4858;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 style="text-align: center">文字切割器</h1>
+    <div class="theme-switch"></div>
+    <div style="display: flex">
+        <div style="width: 100%;">
+            <h4>輸入分隔符號</h4>
+            <input id="delimiter" type="text" />
+        </div>
+    </div>
+    <div style="display: flex">
+      <div style="width: 100%">
+        <h4>文字內容</h4>
+        <div id="txt-container" class="editor"></div>
+      </div>
+    </div>
+    <div style="display: flex; justify-content: center; margin: 10px">
+      <button id="convert" class="btn convert-btn">一鍵轉換</button>
+    </div>
+    <div id="output-container" class="editor"></div>
+    <div style="display: flex; justify-content: center; margin: 10px">
+      <button id="reset" class="btn reset-brn">重設</button>
+      <button id="copy" class="btn copy-brn">複製</button>
+    </div>
+
+    <script>
+      var require = { paths: { vs: "lib/monaco/min/vs" } };
+    </script>
+    <script src="lib/monaco/min/vs/loader.js"></script>
+    <script src="lib/monaco/min/vs/editor/editor.main.nls.js"></script>
+    <script src="lib/monaco/min/vs/editor/editor.main.js"></script>
+
+    <script>
+      let theme = "auto";
+      const mediaQueryListDark = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      );
+      const defaultTheme = mediaQueryListDark.matches ? "vs-dark" : "vs";
+      const txtEditor = monaco.editor.create(
+        document.getElementById("txt-container"),
+        {
+          language: "sql",
+          minimap: { enabled: false },
+          theme: defaultTheme,
+        }
+      );
+
+      const delimiter = document.getElementById("delimiter");
+
+      const outputEditor = monaco.editor.create(
+        document.getElementById("output-container"),
+        {
+          language: "sql",
+          minimap: { enabled: false },
+          theme: defaultTheme,
+        }
+      );
+
+      // 黑暗模式自動切換
+      mediaQueryListDark.addListener((e) => {
+        if (theme === "auto") {
+          if (e.matches) {
+            switchEditorTheme("dark");
+          } else {
+            switchEditorTheme("light");
+          }
+        }
+      });
+
+      function switchEditorTheme(theme) {
+        if (theme === "dark") {
+          txtEditor.updateOptions({ theme: "vs-dark" });
+          outputEditor.updateOptions({ theme: "vs-dark" });
+        } else {
+          txtEditor.updateOptions({ theme: "vs" });
+          outputEditor.updateOptions({ theme: "vs" });
+        }
+      }
+
+      // 主題切換
+      const doby = document.querySelector("body");
+      const themeSwitch = document.querySelector(".theme-switch");
+      themeSwitch.addEventListener("click", () => {
+        if (
+          (theme === "auto" && mediaQueryListDark.matches) ||
+          theme === "dark"
+        ) {
+          doby.classList.remove("dark-theme");
+          doby.classList.add("light-theme");
+          themeSwitch.classList.remove("dark");
+          themeSwitch.classList.add("light");
+          switchEditorTheme("light");
+          theme = "light";
+        } else {
+          doby.classList.remove("lighr-theme");
+          doby.classList.add("dark-theme");
+          themeSwitch.classList.remove("light");
+          themeSwitch.classList.add("dark");
+          switchEditorTheme("dark");
+          theme = "dark";
+        }
+      });
+
+      // 轉換按鈕
+      const convertButton = document.getElementById("convert");
+      convertButton.addEventListener("click", () => {
+        const txt = txtEditor.getValue();
+        const del = delimiter.value;
+        const result = txt.split(del).join("\n");
+        outputEditor.setValue(result);
+      });
+
+      // 複製按鈕
+      const copyButton = document.getElementById("copy");
+      copyButton.addEventListener("click", () => {
+        navigator.clipboard.writeText(outputEditor.getValue());
+      });
+
+      // 重設按鈕
+      const resetButton = document.getElementById("reset");
+      resetButton.addEventListener("click", () => {
+        txtEditor.setValue("");
+        outputEditor.setValue("");
+      });
+
+    </script>
+  </body>
+</html>
