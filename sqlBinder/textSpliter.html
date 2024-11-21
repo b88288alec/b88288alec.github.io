@@ -16,6 +16,8 @@
         --bg-light: white;
         --editor-border-color: #d9d9d9;
         --theme-switch-color: #1f1e24;
+        --th-bg-color: white;
+        --th-font-color: black;
       }
       @media (prefers-color-scheme: dark) {
         body {
@@ -35,6 +37,7 @@
         :root {
           --editor-border-color: #d9d9d9;
           --theme-switch-color: #1f1e24;
+          --th-bg-color: #d9d9d9;
         }
       }
       .light-theme {
@@ -113,27 +116,49 @@
         background-color: #ff4858;
         font-size: 14px;
       }
+      #output-container {
+        margin-top: 20px;
+        width: 100%;
+        height: 400px;
+        overflow: auto;
+      }
+      #output-container table, th, td {
+        border: 1px solid var(--editor-border-color);
+        padding: 8px;
+        border-collapse: collapse;
+      }
+      #output-container table th {
+        position: sticky;
+        top: 0;
+        background-color: var(--th-bg-color);
+        color: var(--th-font-color);
+      }
     </style>
   </head>
   <body>
     <h1 style="text-align: center">文字切割器</h1>
     <div class="theme-switch"></div>
-    <div style="display: flex">
-        <div style="width: 100%;">
-            <h4>輸入分隔符號</h4>
-            <input id="delimiter" type="text" />
-        </div>
+    <div>
+      <label>輸入分隔符號</label>
+      <input id="delimiter" type="text" />
     </div>
+
     <div style="display: flex">
-      <div style="width: 100%">
-        <h4>文字內容</h4>
+      <div style="width: 49%">
+        <h4>Columns here</h4>
+        <div id="col-container" class="editor"></div>
+      </div>
+      <div style="width: 2%"></div>
+      <div style="width: 49%">
+        <h4>TXT here</h4>
         <div id="txt-container" class="editor"></div>
       </div>
     </div>
+    
     <div style="display: flex; justify-content: center; margin: 10px">
       <button id="convert" class="btn convert-btn">一鍵轉換</button>
     </div>
-    <div id="output-container" class="editor"></div>
+    <div id="output-container"></div>
     <div style="display: flex; justify-content: center; margin: 10px">
       <button id="reset" class="btn reset-brn">重設</button>
       <button id="copy" class="btn copy-brn">複製</button>
@@ -152,25 +177,24 @@
         "(prefers-color-scheme: dark)"
       );
       const defaultTheme = mediaQueryListDark.matches ? "vs-dark" : "vs";
+      const colEditor = monaco.editor.create(
+        document.getElementById("col-container"),
+        {
+          language: "txt",
+          minimap: { enabled: false },
+          theme: defaultTheme,
+        }
+      );
       const txtEditor = monaco.editor.create(
         document.getElementById("txt-container"),
         {
-          language: "sql",
+          language: "txt",
           minimap: { enabled: false },
           theme: defaultTheme,
         }
       );
 
       const delimiter = document.getElementById("delimiter");
-
-      const outputEditor = monaco.editor.create(
-        document.getElementById("output-container"),
-        {
-          language: "sql",
-          minimap: { enabled: false },
-          theme: defaultTheme,
-        }
-      );
 
       // 黑暗模式自動切換
       mediaQueryListDark.addListener((e) => {
@@ -185,11 +209,11 @@
 
       function switchEditorTheme(theme) {
         if (theme === "dark") {
+          colEditor.updateOptions({ theme: "vs-dark" });
           txtEditor.updateOptions({ theme: "vs-dark" });
-          outputEditor.updateOptions({ theme: "vs-dark" });
         } else {
+          colEditor.updateOptions({ theme: "vs" });
           txtEditor.updateOptions({ theme: "vs" });
-          outputEditor.updateOptions({ theme: "vs" });
         }
       }
 
@@ -220,24 +244,90 @@
       // 轉換按鈕
       const convertButton = document.getElementById("convert");
       convertButton.addEventListener("click", () => {
-        const txt = txtEditor.getValue();
-        const del = delimiter.value;
-        const result = txt.split(del).join("\n");
-        outputEditor.setValue(result);
+        const cols = parseCols();
+        const result = parseResult(cols);
+        drawResult(cols, result);
       });
 
       // 複製按鈕
       const copyButton = document.getElementById("copy");
       copyButton.addEventListener("click", () => {
-        navigator.clipboard.writeText(outputEditor.getValue());
+        const output = document.getElementById("output");
+        output.select();
+        document.execCommand("copy");
       });
 
       // 重設按鈕
       const resetButton = document.getElementById("reset");
       resetButton.addEventListener("click", () => {
         txtEditor.setValue("");
-        outputEditor.setValue("");
       });
+
+      function parseCols() {
+        return colEditor.getValue().split("\n");
+      }
+
+      function parseResult(cols) {
+        const txt = txtEditor.getValue();
+        const lines = txt.split("\n");
+
+        const result = [];
+        lines.forEach(line => {
+          const s = line.split(delimiter.value);
+
+          const obj = {};
+          cols.forEach((col, i) => {
+            if (col) {
+              obj[col] = s[i];
+            }
+          });
+
+          result.push(obj);
+        });
+
+        return result;
+      }
+
+      function drawResult(cols, result) {
+        const outputContainer = document.getElementById("output-container");
+        outputContainer.innerHTML = "";
+
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
+        const tbody = document.createElement("tbody");
+
+        const tr = document.createElement("tr");
+        const seqTh = document.createElement("th");
+        seqTh.textContent = "SEQ";
+        tr.appendChild(seqTh);
+        cols.forEach(col => {
+          if (col) {
+            const th = document.createElement("th");
+            th.textContent = col;
+            tr.appendChild(th);
+          }
+        });
+        thead.appendChild(tr);
+
+        result.forEach((obj, index) => {
+          const tr = document.createElement("tr");
+          const seqTd = document.createElement("td");
+          seqTd.textContent = index + 1;
+          tr.appendChild(seqTd);
+          cols.forEach(col => {
+            if (col) {
+              const td = document.createElement("td");
+              td.textContent = obj[col];
+              tr.appendChild(td);
+            }
+          });
+          tbody.appendChild(tr);
+        });
+
+        table.appendChild(thead);
+        table.appendChild(tbody);
+        outputContainer.appendChild(table);
+      }
 
     </script>
   </body>
